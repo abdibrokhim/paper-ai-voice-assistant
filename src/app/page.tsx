@@ -24,6 +24,7 @@ import loader from './components/loader';
 import { addFile, getFileByPk } from '../lib/files';
 import { saveAndPlayAudio, openVoiceDatabase } from '../app/api/text-to-speech/utils/indexdb.js';
 import VoiceMode from "./views/VoiceMode";
+import { saveAnnotationDb, getAnnotationsDb, deleteAnnotationDb } from './modes/collaborativeMode/utils/indexDb';
 
 import { app } from './firebaseConfig';
 const db = getFirestore(app);
@@ -140,6 +141,7 @@ export default function Home() {
   const stopRecording = () => {
     if (recognitionRef.current) {
       recognitionRef.current.stop();
+      handleAIResponse(transcript);
     }
   };
 
@@ -373,6 +375,7 @@ export default function Home() {
 
       // Send the transcribed text to the GPT-4o model
       const aiReply = await generateReply(userQuery);
+      // const aiReply = await generateReplyPaper(userQuery);
 
       console.log('AI Reply:', aiReply);
 
@@ -398,6 +401,39 @@ export default function Home() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ prompt }),
+      });
+
+      if (!response.ok) {
+        throw new Error('API request failed');
+      }
+
+      const data = await response.json();
+      return data.message;
+    } catch (error) {
+      console.error('Error:', error);
+      alert('An error occurred while fetching the reply.');
+      return 'No response available';
+    }
+  };
+
+  const getAnnotationsFromIndexDb = async () => {
+    const annotations = await getAnnotationsDb();
+    console.log('getAnnotationsFromIndexDb Annotations:', annotations);
+    return annotations;
+  }
+
+  // query model api
+  // paper analysis
+  const generateReplyPaper = async (prompt: string) => {
+    const anns = await getAnnotationsFromIndexDb();
+    console.log('Generating reply...');
+    try {
+      const response = await fetch('/api/query-paper', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt, anns }),
       });
 
       if (!response.ok) {

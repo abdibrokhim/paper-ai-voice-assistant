@@ -4,6 +4,7 @@ import { UserInfo } from '../../../lib/types';
 
 import { Annotation } from '../../../lib/types';
 import { createCollaboration, fetchAllUserAnnotations, fetchUserAnnotations, addAnnotation, updateAnnotation, deleteAnnotation } from '../../../lib/coannotations';
+import { saveAnnotationDb, getAnnotationsDb, deleteAnnotationDb } from './utils/indexDb';
 
 interface CollaborativeModeProps {
   paperURL: string;
@@ -62,6 +63,16 @@ const CollaborativeMode: React.FC<CollaborativeModeProps> = ({ paperURL, userInf
                 .then((annotations) => {
                 annotationManager.addAnnotations(annotations).then(() => {
                     console.log('Annotations added to the PDF from Firestore.');
+                    console.log('Saving annotations to index db...');
+                    // add annotation to index db
+                    try {
+                      annotations.forEach((annotation) => {
+                        saveAnnotationDb(annotation);
+                      });
+                      console.log('Annotations saved to index db successfully.');
+                    } catch (error) {
+                      console.error('Error saving annotations to index db:', error);
+                    }
                 });
                 })
                 .catch((error) => {
